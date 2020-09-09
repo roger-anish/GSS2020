@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WHU 2020</title>
+</head>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.6.0/dist/leaflet.css" />
+<link rel="stylesheet" href="./MarkerCluster.css">
+<link rel="stylesheet" href="./MarkerCluster.Default.css">
+<style>
+    h1{
+        text-align: center;
+        margin: 10px;
+    }
+    #mapid{
+        width: 99.8%;
+        height: 650px;
+        border: solid;
+    }
+</style>
+<body>
+    <h1>Geoinformatics Summer School 2020</h1>
+    <button id='bt1' >Print</button>
+    <button id="bt2" onclick="openFullmap()" >Full Screen</button>
+    <!-- <button id="bt2">Full map</button> -->
+    <!-- <button id="bt3" onclick="event()">Remove Event from Full Screen</button> -->
+    <input type="text" id="txt1" value="Enter anything"><br>
+    
+    <div id="mapid" ></div><br>
+
+    latitude:<input type="text" id="lat" disabled><br>
+    longitude:<input type="text" id="lng" disabled><br>
+    map zoom level: <input type="text" id="level" disabled>
+</body>
+</html>
+<!-- jquery js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+<!-- leaflet js -->
+<script src="https://unpkg.com/leaflet@1.6.0/dist/leaflet.js"></script>
+<!-- mac twitter -->
+<script src="./twitter for mac.js"></script>
+<!-- marker cluster -->
+<script src="./leaflet.markercluster-src.js"></script>
+<!-- chloropeth map -->
+<script src="./us-states.js"></script>
+<script>
+    var map = L.map('mapid').setView([0, 0], 2);
+
+    var imagery  = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+	    attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+    }).addTo(map);
+    var osm= L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(map);
+
+    // html-js event
+    $('#bt1').click(function(){
+         window.print();
+    })
+
+    // var full= document.getElementById('mapid');
+    function openFullmap(){
+        mapid.requestFullscreen();
+    };
+    // document.getElementById('bt2').addEvent('click',openFullmap());
+
+    // function bt2ClickHandler(){
+    //     alert('Button 2 clicked');
+    // }
+    // document.getElementById('bt2').addEventListener('click',bt2ClickHandler);
+
+    // document.getElementById('bt3').addEventListener('click',function(){
+    //     document.getElementById('bt2').removeEventListener('click',requestFullscreen);
+    //     alert('Removed.Try to click Full screen now');
+    // })
+    // function event(){
+    //     mapid.cancelFullscreen();
+    // }
+
+    // document.getElementById('bt3').addEventListener('click',function(){
+    //     document.getElementById('bt2').removeEventListener('click',openFullmap);
+    //     alert('Removed.Try to click Buttom 2 now');
+    // });
+
+    function txt1ValueChangeHandler(){
+        alert('New value:'+document.getElementById('txt1').value);
+    }
+    document.getElementById('txt1').addEventListener('change',txt1ValueChangeHandler);
+
+    // leaflet event
+    // map.on('click',mapClickHandler);
+    // function mapClickHandler(e){
+    //     document.getElementById('lat').value = e.latlng.lat;
+    //     document.getElementById('lng').value = e.latlng.lng;
+    // }
+    map.on('mousemove',mouseMoveHandler);
+    function mouseMoveHandler(e){
+        document.getElementById('lat').value=e.latlng.lat;
+        document.getElementById('lng').value=e.latlng.lng;
+    }
+    map.on('zoom',levelChangeHandler);
+    function levelChangeHandler(e){
+        document.getElementById('level').value=map.getZoom();
+    }
+
+    // twitter mac marker cluster
+    var maclayer= L.geoJSON(mac);
+    var markers = L.markerClusterGroup();
+    maclayer.addTo(markers);
+    markers.addTo(map);
+
+    var myStyle={
+        color:'#ff7800',
+        fillColor: 'gold',
+        weight: 1,
+        fillOpacity:0.5,
+    }
+
+    // chloropeth map
+    var statelayer = L.geoJSON(statesData,{
+        style: setStyle,
+        onEachFeature:onEachFeature
+    });
+    function getColor(d) {
+    return d > 1000 ? '#800026' :
+           d > 500  ? '#BD0026' :
+           d > 200  ? '#E31A1C' :
+           d > 100  ? '#FC4E2A' :
+           d > 50   ? '#FD8D3C' :
+           d > 20   ? '#FEB24C' :
+           d > 10   ? '#FED976' :
+                      '#FFEDA0';
+    }
+    function setStyle(feature){
+        return{
+            fillColor:getColor(feature.properties.density),
+            fillOpacity:0.8,
+            weight:1,
+            color:'white'
+        };
+    }
+    function onEachFeature(feature,layer){
+        layer.on('click',zoomToFeature);
+        if (feature.properties && feature.properties.name){
+            layer.bindPopup(feature.properties.name+'<br>'+feature.properties.density+'people/mile<sup>2</sup>');
+        }
+    }
+    function zoomToFeature(e){
+        map.fitBounds(e.target.getBounds());
+    }
+
+
+
+    var baseLayers={
+        "OSM": osm,
+        "imagery": imagery,
+    };
+    var overlays={
+        "twitter for mac": markers,
+        "State population": statelayer,
+    };
+    L.control.layers(baseLayers,overlays).addTo(map);
+</script>
